@@ -1,2 +1,2 @@
-# TCGA_MTL
+# Multi-task-TCGA-learning
 Multi-task learning of TCGA data
