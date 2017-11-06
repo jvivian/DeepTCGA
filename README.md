@@ -4,3 +4,7 @@ Multi-task learning of TCGA data. This is the code implementing the NIPS woman i
 
 ### Data Source: TCGA
 last downloaded from bop: `/projects/sysbio/users/TCGA/PANCANATLAS/Data/` on Oct-23-2017 
+
+#### Running Jupyter Notebook remotely:
+1. In dlpc, run `jupyter notebook --no-browser`  
+2. In laptop, run `ssh -NL 8800:localhost:8888 molly@eduroam-169-233-227-149.ucsc.edu`, this command has alias `dlpc-jupyter`
