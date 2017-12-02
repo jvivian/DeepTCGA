@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelBinarizer
 from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import dtypes
 
@@ -9,6 +9,7 @@ class DataSet(object):
 
     def __init__(self, X, y, dtype=dtypes.float32):
         dtype = dtypes.as_dtype(dtype).base_dtype
+        
         assert X.shape[0] == y.shape[0]
         self._num_examples = X.shape[0]
         self._X = X
@@ -61,7 +62,7 @@ def read_data_sets(filename,
     X = df[df.columns[3:]]
     X = X.as_matrix()
     y_raw = df[label_name]
-    le = LabelEncoder()
+    le = LabelBinarizer()
     y = le.fit_transform(y_raw)
 
     # shuffle data
