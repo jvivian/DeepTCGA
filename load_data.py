@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from collections import namedtuple
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import dtypes
 
@@ -16,11 +16,16 @@ class DataSet(object):
         self._index_in_epoch = 0
 
     def extract_labels(self, df):
-        le = LabelBinarizer()
-        y_tissue = le.fit_transform(df["label_tissue"])
-        y_gender = le.fit_transform(df["label_gender"])
-        y_tumor = le.fit_transform(df["label"])
-        return {"tissue": y_tissue, "gender": y_gender, "tumor": y_tumor}
+        label_dict = {}
+        for label_name in ["tissue", "tumor", "gender"]:
+            lb = LabelBinarizer()
+            label_dict[label_name] = lb.fit_transform(df["label_{0}".format(label_name)])
+
+        # redudant encoding gender label with a column 0 and a column 1 for later speediency
+        reverse_gender = [1-i for i in label_dict["gender"][:, 0]]
+        label_dict["gender"] = np.insert(label_dict["gender"], 0, reverse_gender, axis=1)
+        return label_dict
+
 
     @property
     def X(self):
@@ -62,15 +67,17 @@ class DataSet(object):
                 self._y["tumor"][start:end])
 
 
-def read_data_sets(filename, 
-                   test_frac=0.1):
+def read_data_sets(filename, test_frac=0.1):
     # read and encode data
-    df = pd.read_csv(filename, index_col="sample_id")
-    
+    df_X = pd.read_csv(filename, index_col="sample_id")
+    df_y = pd.read_csv("./data/labels.csv", index_col="sample_id")
+    df = df_y.join(df_X).dropna()
+
     # shuffle data
     perm = np.arange(df.shape[0])
     np.random.shuffle(perm)
-    df = df.iloc[perm, :].copy()
+    df = df.iloc[perm, :]
+
     # split to train, validddation and test
     test_size = int(test_frac * df.shape[0])
     df_test = df.iloc[:test_size, :]
