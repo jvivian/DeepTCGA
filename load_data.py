@@ -66,6 +66,9 @@ class DataSet(object):
                 self._y["gender"][start:end],
                 self._y["tumor"][start:end])
 
+    def reset_epoch(self):
+        self._epochs_completed = 0
+
 
 def read_data_sets(filename, test_frac=0.1):
     # read and encode data
