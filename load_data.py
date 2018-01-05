@@ -61,10 +61,12 @@ class DataSet(object):
             self._index_in_epoch = batch_size
             assert batch_size <= self._num_examples
         end = self._index_in_epoch
-        return (self._X[start:end], 
-                self._y["tissue"][start:end],
-                self._y["gender"][start:end],
-                self._y["tumor"][start:end])
+        batch_x = self._X[start:end]
+        batch_y = {"tissue": self._y["tissue"][start:end],
+                   "gender": self._y["gender"][start:end],
+                   "tumor": self._y["tumor"][start:end]}
+        return batch_x, batch_y
+
 
     def reset_epoch(self):
         self._epochs_completed = 0
