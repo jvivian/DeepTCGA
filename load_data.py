@@ -10,7 +10,7 @@ class DataSet(object):
 
     def __init__(self, df):
         self._num_examples = df.shape[0]
-        self._X = df.iloc[:, 3:].as_matrix()
+        self._X = df.iloc[:, 3:].as_matrix().astype(np.float32)
         self._y = self.extract_labels(df) 
         self._epochs_completed = 0
         self._index_in_epoch = 0
