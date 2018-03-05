@@ -2,12 +2,16 @@ import numpy as np
 import pandas as pd
 import os
 from sklearn.preprocessing import LabelBinarizer
+import tensorflow as tf
+
 
 
 class DataSet(object):
     def __init__(self, df):
         self.X = df.iloc[:, 3:].as_matrix().astype(np.float32)
         self.y = self.extract_labels(df) 
+        self.data_dict = self.y.copy()
+        self.data_dict["X"] = self.X
  
     def extract_labels(self, df):
         label_dict = {}
@@ -31,6 +35,28 @@ class SplitSet(object):
         self.train = self.cv[0][0]
         self.val = self.cv[0][0]
 
+    def prep_test_batch(self, data):
+        dataset = tf.data.Dataset.from_tensor_slices(data.data_dict)
+        dataset = dataset.repeat(1)
+        dataset = dataset.batch(data.X.shape[0])
+        iterator = dataset.make_initializable_iterator()
+        next_batch = iterator.get_next()
+        return next_batch, iterator
+
+    def prep_train_batch(self, fold=0, batch_size=128):
+        train_data, val_data = self.cv[fold]
+        val_all, val_iter = self.prep_test_batch(val_data)
+        train_all, train_iter_all = self.prep_test_batch(train_data)
+        dataset = tf.data.Dataset.from_tensor_slices(train_data.data_dict)
+        dataset = dataset.shuffle(buffer_size=10000)
+        dataset = dataset.batch(batch_size)
+        dataset = dataset.prefetch(2*batch_size) # does this do anything?
+        train_iter = dataset.make_initializable_iterator()
+        train_next_batch = train_iter.get_next()
+        return (train_next_batch, train_iter, 
+                val_all, val_iter,
+                train_all, train_iter_all)
+
 
 def read_data_sets(filename, random_state=0):
     data = SplitSet() 
@@ -53,8 +79,8 @@ def read_data_sets(filename, random_state=0):
         df_train = df.loc[get_sample_ids(train_file)]
         df_val = df.loc[get_sample_ids(val_file)]
         data.cv.append((DataSet(df_train), DataSet(df_val)))
-    
-    data.get_first_fold()    
+   
+    data.get_first_fold() # load fold 1 of cv as default train, validation 
     return data
 
 
@@ -62,7 +88,4 @@ def get_sample_ids(filename):
     with open(filename, "r") as f:
         return f.read().strip("\n").split("\n")
   
-
- 
-
 
