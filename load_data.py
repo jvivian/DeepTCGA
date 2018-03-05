@@ -11,7 +11,9 @@ class DataSet(object):
         self.X = df.iloc[:, 3:].as_matrix().astype(np.float32)
         self.y = self.extract_labels(df) 
         self.data_dict = self.y.copy()
-        self.data_dict["X"] = self.X
+        self.data_dict.update({"X": self.X})
+        self.num_features = self.X.shape[1]
+        self.label_classes = {i:j.shape[1] for i, j in self.y.items()}
  
     def extract_labels(self, df):
         label_dict = {}
