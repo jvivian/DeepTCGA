@@ -39,7 +39,7 @@ class SplitSet(object):
 
     def prep_test_batch(self, data):
         dataset = tf.data.Dataset.from_tensor_slices(data.data_dict)
-        dataset = dataset.repeat(1)
+        dataset = dataset.repeat(-1)
         dataset = dataset.batch(data.X.shape[0])
         iterator = dataset.make_initializable_iterator()
         next_batch = iterator.get_next()
