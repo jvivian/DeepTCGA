@@ -45,12 +45,15 @@ class SplitSet(object):
         next_batch = iterator.get_next()
         return next_batch, iterator
 
-    def prep_train_batch(self, fold=0, batch_size=128):
+    def prep_batch(self, fold=0, batch_size=128, count_by="step"):
+        """ allow for counting epoch number by catching exception"""
         train_data, val_data = self.cv[fold]
         val_all, val_iter = self.prep_test_batch(val_data)
         train_all, train_iter_all = self.prep_test_batch(train_data)
         dataset = tf.data.Dataset.from_tensor_slices(train_data.data_dict)
         dataset = dataset.shuffle(buffer_size=10000)
+        if count_by == "step":
+            dataset = dataset.repeat(-1)
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(2*batch_size) # does this do anything?
         train_iter = dataset.make_initializable_iterator()
@@ -63,10 +66,19 @@ class SplitSet(object):
 def read_data_sets(filename, random_state=0):
     data = SplitSet() 
     data_path = "./data/train_val_test_split/seed{0}".format(random_state)
+    
     # read data
-    df_X = pd.read_csv(filename, index_col="sample_id")
+    if filename[-3:] == "csv":
+        df_X = pd.read_csv(filename, index_col="sample_id")
+    elif filename[-3:] == "hdf":
+        df_X = pd.read_hdf(filename)
+    else:
+        raise 
     df_y = pd.read_csv("./data/labels.csv", index_col="sample_id")
     df = df_y.join(df_X).dropna()
+
+    # save all data into SplitSet object
+    data.all = DataSet(df)
 
     # seperate to train and val from test
     test_file = os.path.join(data_path, "test.csv")
