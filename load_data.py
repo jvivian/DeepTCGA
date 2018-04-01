@@ -16,10 +16,12 @@ class DataSet(object):
         self.label_classes = {i:j.shape[1] for i, j in self.y.items()}
  
     def extract_labels(self, df):
+        """ replace null values with AAAAA so that null is always encoded as first col"""
         label_dict = {}
         for label_name in ["tissue", "tumor", "gender"]:
             lb = LabelBinarizer()
-            label_dict[label_name] = lb.fit_transform(df["label_{0}".format(label_name)])
+            this_label = df["label_{0}".format(label_name)].replace(np.nan, "AAAAA")
+            label_dict[label_name] = lb.fit_transform(this_label)
             if label_dict[label_name].shape[1] == 1:
             # redudantly encode binary labels with two columns for later speediency
                 reverse = [1-i for i in label_dict[label_name][:, 0]]
@@ -35,7 +37,7 @@ class SplitSet(object):
     def get_first_fold(self):
         """ use 1st fold of train, validation data by default"""
         self.train = self.cv[0][0]
-        self.val = self.cv[0][0]
+        self.val = self.cv[0][1]
 
     def prep_test_batch(self, data):
         dataset = tf.data.Dataset.from_tensor_slices(data.data_dict)
@@ -75,7 +77,7 @@ def read_data_sets(filename, random_state=0):
     else:
         raise 
     df_y = pd.read_csv("./data/labels.csv", index_col="sample_id")
-    df = df_y.join(df_X).dropna()
+    df = df_y.join(df_X)
 
     # save all data into SplitSet object
     data.all = DataSet(df)
