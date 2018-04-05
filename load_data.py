@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 import tensorflow as tf
 
 
@@ -10,22 +10,33 @@ class DataSet(object):
     def __init__(self, df):
         self.X = df.iloc[:, 3:].as_matrix().astype(np.float32)
         self.y = self.extract_labels(df) 
+        self.y_STL = self.extract_STL_labels(df)
         self.data_dict = self.y.copy()
         self.data_dict.update({"X": self.X})
         self.num_features = self.X.shape[1]
         self.label_classes = {i:j.shape[1] for i, j in self.y.items()}
  
     def extract_labels(self, df):
-        """ replace null values with AAAAA so that null is always encoded as first col"""
+        """ replace null values with AAAAA which is always encoded as first col"""
         label_dict = {}
         for label_name in ["tissue", "tumor", "gender"]:
             lb = LabelBinarizer()
             this_label = df["label_{0}".format(label_name)].replace(np.nan, "AAAAA")
-            label_dict[label_name] = lb.fit_transform(this_label)
-            if label_dict[label_name].shape[1] == 1:
-            # redudantly encode binary labels with two columns for later speediency
-                reverse = [1-i for i in label_dict[label_name][:, 0]]
-                label_dict[label_name] = np.insert(label_dict[label_name], 0, reverse, axis=1)
+            encoded_label = lb.fit_transform(this_label)
+            if encoded_label.shape[1] == 1:
+                # redudantly encode binary labels with two columns for later speediency
+                reverse = [1-i for i in encoded_label[:, 0]]
+                encoded_label = np.insert(encoded_label, 0, reverse, axis=1)
+            label_dict[label_name] = encoded_label
+        return label_dict
+    
+    def extract_STL_labels(self, df):
+        """ replace null values with AAAAA which is always encoded as first col"""
+        label_dict = {}
+        for label_name in ["tissue", "tumor", "gender"]:
+            le = LabelEncoder()
+            this_label = df["label_{0}".format(label_name)].replace(np.nan, "AAAAA")
+            label_dict[label_name] = le.fit_transform(this_label)
         return label_dict
 
 
