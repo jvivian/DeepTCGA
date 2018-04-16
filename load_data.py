@@ -1,14 +1,15 @@
 import numpy as np
 import pandas as pd
 import os
-from sklearn.preprocessing import LabelBinarizer, LabelEncoder
+from sklearn.preprocessing import LabelBinarizer, LabelEncoder, MinMaxScaler
 import tensorflow as tf
 
 
 
 class DataSet(object):
     def __init__(self, df):
-        self.X = df.iloc[:, 3:].as_matrix().astype(np.float32)
+        X_cols = [i for i in df.columns if "label" not in i]
+        self.X = df[X_cols].as_matrix().astype(np.float32)
         self.y = self.extract_labels(df) 
         self.y_STL = self.extract_STL_labels(df)
         self.data_dict = self.y.copy()
@@ -28,6 +29,13 @@ class DataSet(object):
                 reverse = [1-i for i in encoded_label[:, 0]]
                 encoded_label = np.insert(encoded_label, 0, reverse, axis=1)
             label_dict[label_name] = encoded_label
+        
+        # MinMax normalize age label, replace nan in age with -1
+        not_null_idx = df[~df["label_age"].isnull()].index
+        ages = df.loc[not_null_idx]["label_age"].as_matrix().reshape(-1, 1)
+        scaler = MinMaxScaler()
+        df.loc[not_null_idx, "label_age"] = scaler.fit_transform(ages)
+        label_dict["age"] = df["label_age"].replace(np.nan, -1).as_matrix().reshape(-1, 1)
         return label_dict
     
     def extract_STL_labels(self, df):
