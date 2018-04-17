@@ -8,10 +8,10 @@ import tensorflow as tf
 
 class DataSet(object):
     def __init__(self, df):
-        X_cols = [i for i in df.columns if "label" not in i]
-        self.X = df[X_cols].as_matrix().astype(np.float32)
+        self.X_cols = [i for i in df.columns if "label" not in i]
+        self.X = df[self.X_cols].as_matrix().astype(np.float32)
         self.y = self.extract_labels(df) 
-        self.y_STL = self.extract_STL_labels(df)
+        self.STL = self.extract_STL_labels(df)
         self.data_dict = self.y.copy()
         self.data_dict.update({"X": self.X})
         self.num_features = self.X.shape[1]
@@ -21,31 +21,47 @@ class DataSet(object):
         """ replace null values with AAAAA which is always encoded as first col"""
         label_dict = {}
         for label_name in ["tissue", "tumor", "gender"]:
-            lb = LabelBinarizer()
             this_label = df["label_{0}".format(label_name)].replace(np.nan, "AAAAA")
-            encoded_label = lb.fit_transform(this_label)
-            if encoded_label.shape[1] == 1:
-                # redudantly encode binary labels with two columns for later speediency
-                reverse = [1-i for i in encoded_label[:, 0]]
-                encoded_label = np.insert(encoded_label, 0, reverse, axis=1)
+            encoded_label = self.encode_categorical_label(this_label)
             label_dict[label_name] = encoded_label
         
-        # MinMax normalize age label, replace nan in age with -1
+        # MinMax normalize age label, replace nan with -1
         not_null_idx = df[~df["label_age"].isnull()].index
         ages = df.loc[not_null_idx]["label_age"].as_matrix().reshape(-1, 1)
-        scaler = MinMaxScaler()
-        df.loc[not_null_idx, "label_age"] = scaler.fit_transform(ages)
+        df.loc[not_null_idx, "label_age"] = self.norm_numerical_label(ages)
         label_dict["age"] = df["label_age"].replace(np.nan, -1).as_matrix().reshape(-1, 1)
         return label_dict
     
     def extract_STL_labels(self, df):
-        """ replace null values with AAAAA which is always encoded as first col"""
-        label_dict = {}
-        for label_name in ["tissue", "tumor", "gender"]:
-            le = LabelEncoder()
-            this_label = df["label_{0}".format(label_name)].replace(np.nan, "AAAAA")
-            label_dict[label_name] = le.fit_transform(this_label)
-        return label_dict
+        """ throw away null values for both X and y"""
+        data_dict = {}
+        for label_name in ["tissue", "tumor", "gender", "age"]:
+            label = "label_" + label_name
+            cols = [label] + self.X_cols
+            this_df = df[cols].dropna()
+            X = this_df[self.X_cols].as_matrix().astype(np.float32)
+            y_raw = this_df[label].as_matrix()
+            if label_name == "age":
+                y = self.norm_numerical_label(y_raw.reshape(-1, 1))
+            else:
+                y = self.encode_categorical_label(y_raw)
+            data_dict[label_name] = {"X": X, "y": y}
+        return data_dict
+
+    def encode_categorical_label(self, label_array):
+        lb = LabelBinarizer()
+        encoded_label = lb.fit_transform(label_array)
+        if encoded_label.shape[1] == 1:
+            # redudantly encode binary labels with two columns for later speediency
+            reverse = [1-i for i in encoded_label[:, 0]]
+            encoded_label = np.insert(encoded_label, 0, reverse, axis=1)
+        return encoded_label
+
+    def norm_numerical_label(self, label_array):
+        scaler = MinMaxScaler()
+        normed_label = scaler.fit_transform(label_array)
+        return normed_label
+
 
 
 class SplitSet(object):
