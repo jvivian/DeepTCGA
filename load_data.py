@@ -22,7 +22,7 @@ class DataSet(object):
         label_dict = {}
         for label_name in ["tissue", "tumor", "gender"]:
             this_label = df["label_{0}".format(label_name)].replace(np.nan, "AAAAA")
-            encoded_label = self.encode_categorical_label(this_label)
+            encoded_label = self.ohe_categorical_label(this_label)
             label_dict[label_name] = encoded_label
         
         # MinMax normalize age label, replace nan with -1
@@ -43,12 +43,14 @@ class DataSet(object):
             y_raw = this_df[label].as_matrix()
             if label_name == "age":
                 y = self.norm_numerical_label(y_raw.reshape(-1, 1))
+                data_dict[label_name] = {"X": X, "y": y}
             else:
+                y_onehot = self.ohe_categorical_label(y_raw)
                 y = self.encode_categorical_label(y_raw)
-            data_dict[label_name] = {"X": X, "y": y}
+                data_dict[label_name] = {"X": X, "y_onehot": y_onehot, "y": y}
         return data_dict
 
-    def encode_categorical_label(self, label_array):
+    def ohe_categorical_label(self, label_array):
         lb = LabelBinarizer()
         encoded_label = lb.fit_transform(label_array)
         if encoded_label.shape[1] == 1:
@@ -57,6 +59,11 @@ class DataSet(object):
             encoded_label = np.insert(encoded_label, 0, reverse, axis=1)
         return encoded_label
 
+    def encode_categorical_label(self, label_array):
+        lb = LabelEncoder()
+        encoded_label = lb.fit_transform(label_array)
+        return encoded_label
+    
     def norm_numerical_label(self, label_array):
         scaler = MinMaxScaler()
         normed_label = scaler.fit_transform(label_array)
