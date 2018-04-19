@@ -8,10 +8,10 @@ import tensorflow as tf
 
 class DataSet(object):
     def __init__(self, df):
+        self.df = df
         self.X_cols = [i for i in df.columns if "label" not in i]
         self.X = df[self.X_cols].as_matrix().astype(np.float32)
         self.y = self.extract_labels(df) 
-        self.STL = self.extract_STL_labels(df)
         self.data_dict = self.y.copy()
         self.data_dict.update({"X": self.X})
         self.num_features = self.X.shape[1]
@@ -32,23 +32,24 @@ class DataSet(object):
         label_dict["age"] = df["label_age"].replace(np.nan, -1).as_matrix().reshape(-1, 1)
         return label_dict
     
-    def extract_STL_labels(self, df):
+    def extract_STL(self, label_name, one_hot=False):
         """ throw away null values for both X and y"""
+        if label_name == "age" and one_hot:
+            raise Exception("can't one-hot encode age, which is continuous")
         data_dict = {}
-        for label_name in ["tissue", "tumor", "gender", "age"]:
-            label = "label_" + label_name
-            cols = [label] + self.X_cols
-            this_df = df[cols].dropna()
-            X = this_df[self.X_cols].as_matrix().astype(np.float32)
-            y_raw = this_df[label].as_matrix()
-            if label_name == "age":
-                y = self.norm_numerical_label(y_raw.reshape(-1, 1))
-                data_dict[label_name] = {"X": X, "y": y}
+        label = "label_" + label_name
+        cols = [label] + self.X_cols
+        this_df = self.df[cols].dropna()
+        X = this_df[self.X_cols].as_matrix().astype(np.float32)
+        y_raw = this_df[label].as_matrix()
+        if label_name == "age":
+            y = self.norm_numerical_label(y_raw.reshape(-1, 1))
+        else:
+            if one_hot:
+                y = self.ohe_categorical_label(y_raw)
             else:
-                y_onehot = self.ohe_categorical_label(y_raw)
                 y = self.encode_categorical_label(y_raw)
-                data_dict[label_name] = {"X": X, "y_onehot": y_onehot, "y": y}
-        return data_dict
+        return (X, y)
 
     def ohe_categorical_label(self, label_array):
         lb = LabelBinarizer()
