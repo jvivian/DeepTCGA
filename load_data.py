@@ -5,6 +5,8 @@ from sklearn.preprocessing import LabelBinarizer, LabelEncoder, MinMaxScaler
 import tensorflow as tf
 
 
+PATH = "/home/molly/Desktop/DeepTCGA/data/"
+
 
 class DataSet(object):
     def __init__(self, df):
@@ -119,7 +121,7 @@ def read_data_sets(filename, random_state=0):
         df_X = pd.read_hdf(filename)
     else:
         raise 
-    df_y = pd.read_csv("./data/labels.csv", index_col="sample_id")
+    df_y = pd.read_csv(PATH+"labels.csv", index_col="sample_id")
     df = df_y.join(df_X)
 
     # save all data into SplitSet object
