@@ -118,7 +118,7 @@ def read_data_sets(filename, random_state=0):
     if filename[-3:] == "csv":
         df_X = pd.read_csv(filename, index_col="sample_id")
     elif filename[-3:] == "hdf":
-        df_X = pd.read_hdf(filename)
+        df_X = pd.read_hdf(filename, "mRNA")
     else:
         raise 
     df_y = pd.read_csv(PATH+"/labels.csv", index_col="sample_id")
